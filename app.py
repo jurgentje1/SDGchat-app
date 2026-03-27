@@ -1,6 +1,7 @@
 import streamlit as st
 from groq import Groq
 import os
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -167,15 +168,34 @@ PRESETS = {
 # ============================================================================
 
 defaults = {
-    "messages": [],
     "current_model": "GPT-OSS 120B",
     "current_preset": "🌍 Eco Expert",
     "temperature": 0.5,
-    "system_prompt": PRESETS["🌍 Eco Expert"]["prompt"]
+    "system_prompt": PRESETS["🌍 Eco Expert"]["prompt"],
+    "chat_history": [],
+    "active_chat_id": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+def get_active_chat():
+    """Return the active chat object (stored in session_state)."""
+    if not st.session_state.chat_history:
+        st.session_state.chat_history = [{"id": str(uuid.uuid4()), "title": "Chat 1", "messages": []}]
+        st.session_state.active_chat_id = st.session_state.chat_history[0]["id"]
+    if st.session_state.active_chat_id is None:
+        st.session_state.active_chat_id = st.session_state.chat_history[0]["id"]
+    for chat in st.session_state.chat_history:
+        if chat["id"] == st.session_state.active_chat_id:
+            return chat
+    # Fallback if something got out of sync.
+    st.session_state.active_chat_id = st.session_state.chat_history[0]["id"]
+    return st.session_state.chat_history[0]
+
+# Make `st.session_state.messages` point to the active chat's messages list.
+active_chat = get_active_chat()
+st.session_state.messages = active_chat["messages"]
 
 # ============================================================================
 # CSS
@@ -227,10 +247,8 @@ def get_theme_css():
     }}
 
     /* ── Sticky Header (always visible) ── */
-    div[data-testid="stVerticalBlockBorderWrapper"]:has(#header-left-anchor),
-    div[data-testid="stVerticalBlockBorderWrapper"]:has(#header-right-anchor),
-    div[data-testid="stVerticalBlock"]:has(#header-left-anchor),
-    div[data-testid="stVerticalBlock"]:has(#header-right-anchor) {{
+    div[data-testid="stHorizontalBlock"]:has(#header-left-anchor),
+    div[data-testid="stHorizontalBlock"]:has(#header-right-anchor) {{
         position: sticky !important;
         top: 0px !important;
         z-index: 999 !important;
@@ -460,6 +478,47 @@ def get_theme_css():
 st.markdown(get_theme_css(), unsafe_allow_html=True)
 
 # ============================================================================
+# SIDEBAR: Chat history
+# ============================================================================
+with st.sidebar:
+    st.subheader("Chat history")
+
+    if st.button("➕ New chat", key="new_chat_btn", use_container_width=True):
+        new_idx = len(st.session_state.chat_history) + 1
+        new_chat = {"id": str(uuid.uuid4()), "title": f"Chat {new_idx}", "messages": []}
+        st.session_state.chat_history.insert(0, new_chat)
+        st.session_state.active_chat_id = new_chat["id"]
+        st.rerun()
+
+    # Simple mapping from button click to chat id.
+    for idx, chat in enumerate(st.session_state.chat_history[:20]):
+        title = chat.get("title") or f"Chat {idx + 1}"
+        is_active = chat["id"] == st.session_state.active_chat_id
+        if st.button(
+            f"{'• ' if is_active else ''}{title}",
+            key=f"chat_select_{chat['id']}",
+            use_container_width=True,
+        ):
+            st.session_state.active_chat_id = chat["id"]
+            # Update pointer after rerun.
+            st.rerun()
+
+    st.divider()
+    active_chat = get_active_chat()
+    export_md = "\n\n".join(
+        [f"### {m.get('role', 'message')}\n\n{m.get('content', '')}" for m in active_chat["messages"]]
+    )
+    if not export_md.strip():
+        export_md = "_(Empty chat)_"
+    st.download_button(
+        "⬇️ Export active chat",
+        data=export_md,
+        file_name=f"sdgchat_{active_chat['id']}.md",
+        mime="text/markdown",
+        use_container_width=True,
+    )
+
+# ============================================================================
 # GROQ API
 # ============================================================================
 
@@ -589,7 +648,10 @@ with header_container:
 
         with hc2:
             if st.button("🗑️", key="clear_chat", help="Gesprek wissen"):
-                st.session_state.messages = []
+                active_chat = get_active_chat()
+                active_chat["messages"].clear()
+                active_chat["title"] = "Chat 1" if len(st.session_state.chat_history) == 1 else "New chat"
+                st.session_state.messages = active_chat["messages"]
                 st.rerun()
 
         with hc3:
@@ -609,21 +671,7 @@ if not st.session_state.messages:
     </div>
     """, unsafe_allow_html=True)
 
-    _, card_col, _ = st.columns([1, 4, 1])
-    with card_col:
-        st.markdown('<div class="gc-cards">', unsafe_allow_html=True)
-        row1 = st.columns(2)
-        row2 = st.columns(2)
-        examples = active_preset["examples"]
-        for idx, prompt in enumerate(examples):
-            if idx >= 4:
-                break
-            col = row1[idx] if idx < 2 else row2[idx - 2]
-            with col:
-                if st.button(prompt, use_container_width=True, key=f"example_{idx}"):
-                    st.session_state.messages.append({"role": "user", "content": prompt})
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.caption("Kies je model in de header en typ je vraag in de chatbox hieronder.")
 
 else:
     for message in st.session_state.messages:
@@ -636,6 +684,13 @@ else:
 
 prompt = st.chat_input("Typ een bericht... (Enter om te sturen, Shift+Enter voor nieuwe regel)")
 if prompt:
+    active_chat = get_active_chat()
+    if len(active_chat["messages"]) == 0:
+        # Use the first user message as a compact chat title.
+        trimmed = prompt.strip().replace("\n", " ")
+        active_chat["title"] = trimmed[:32] + ("..." if len(trimmed) > 32 else "")
+        st.session_state.chat_history = st.session_state.chat_history  # no-op, but keeps intent clear
+
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
