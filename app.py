@@ -226,6 +226,19 @@ def get_theme_css():
         to   {{ opacity: 1; transform: translateY(0); }}
     }}
 
+    /* ── Sticky Header ── */
+    div[data-testid="stVerticalBlockOuter"]:has(#header-anchor),
+    div[data-testid="stVerticalBlock"]:has(#header-anchor) {{
+        position: sticky !important;
+        top: 0px !important;
+        z-index: 999 !important;
+        background-color: #0f1117 !important;
+        padding-top: 15px !important;
+        padding-bottom: 5px !important;
+        margin-bottom: 25px !important;
+        border-bottom: 1px solid rgba(255,107,53,.12) !important;
+    }}
+
     /* ── Header ── */
     .gc-header-left {{
         display: flex;
@@ -537,48 +550,49 @@ def settings_dialog():
 # HEADER
 # ============================================================================
 
-col_left, col_right = st.columns([3, 2])
+header_container = st.container()
+with header_container:
+    st.markdown("<span id='header-anchor'></span>", unsafe_allow_html=True)
+    col_left, col_right = st.columns([3, 2])
 
-active_preset = PRESETS[st.session_state.current_preset]
+    active_preset = PRESETS[st.session_state.current_preset]
 
-with col_left:
-    role_name = st.session_state.current_preset.split(" ", 1)[1] if " " in st.session_state.current_preset else st.session_state.current_preset
-    st.markdown(f"""
-    <div class="gc-header-left">
-        <div class="gc-logo">{active_preset['icon']}</div>
-        <div>
-            <div class="gc-brand-title">SDGChat</div>
-            <div class="gc-brand-sub">Rol: {role_name}</div>
+    with col_left:
+        role_name = st.session_state.current_preset.split(" ", 1)[1] if " " in st.session_state.current_preset else st.session_state.current_preset
+        st.markdown(f"""
+        <div class="gc-header-left">
+            <div class="gc-logo">{active_preset['icon']}</div>
+            <div>
+                <div class="gc-brand-title">SDGChat</div>
+                <div class="gc-brand-sub">Rol: {role_name}</div>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-with col_right:
-    model_names = list(MODELS.keys())
-    model_index = model_names.index(st.session_state.current_model) if st.session_state.current_model in model_names else 0
+    with col_right:
+        model_names = list(MODELS.keys())
+        model_index = model_names.index(st.session_state.current_model) if st.session_state.current_model in model_names else 0
 
-    hc1, hc2, hc3 = st.columns([6, 1, 1])
-    with hc1:
-        selected_model = st.selectbox(
-            "Model",
-            options=model_names,
-            index=model_index,
-            label_visibility="collapsed",
-            key="model_select",
-            format_func=lambda m: f"{m}  ·  {MODEL_BADGES.get(m, '')}",
-        )
-        st.session_state.current_model = selected_model
+        hc1, hc2, hc3 = st.columns([6, 1, 1])
+        with hc1:
+            selected_model = st.selectbox(
+                "Model",
+                options=model_names,
+                index=model_index,
+                label_visibility="collapsed",
+                key="model_select",
+                format_func=lambda m: f"{m}  ·  {MODEL_BADGES.get(m, '')}",
+            )
+            st.session_state.current_model = selected_model
 
-    with hc2:
-        if st.button("🗑️", key="clear_chat", help="Gesprek wissen"):
-            st.session_state.messages = []
-            st.rerun()
+        with hc2:
+            if st.button("🗑️", key="clear_chat", help="Gesprek wissen"):
+                st.session_state.messages = []
+                st.rerun()
 
-    with hc3:
-        if st.button("⚙️", key="settings_toggle", help="Instellingen"):
-            settings_dialog()   # opens the modal popup
-
-st.markdown("<hr style='margin:0; border-color:rgba(255,107,53,.12);'>", unsafe_allow_html=True)
+        with hc3:
+            if st.button("⚙️", key="settings_toggle", help="Instellingen"):
+                settings_dialog()   # opens the modal popup
 
 # ============================================================================
 # MAIN AREA
