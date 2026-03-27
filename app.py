@@ -227,7 +227,10 @@ def get_theme_css():
     }}
 
     /* ── Sticky Header (always visible) ── */
-    div[data-testid="stVerticalBlock"]:has(#header-anchor) {{
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(#header-left-anchor),
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(#header-right-anchor),
+    div[data-testid="stVerticalBlock"]:has(#header-left-anchor),
+    div[data-testid="stVerticalBlock"]:has(#header-right-anchor) {{
         position: sticky !important;
         top: 0px !important;
         z-index: 999 !important;
@@ -548,12 +551,13 @@ def settings_dialog():
 
 header_container = st.container()
 with header_container:
-    st.markdown("<span id='header-anchor'></span>", unsafe_allow_html=True)
     col_left, col_right = st.columns([3, 2])
 
     active_preset = PRESETS[st.session_state.current_preset]
 
     with col_left:
+        # Anchor inside the LEFT header column so CSS can pin this whole block.
+        st.markdown("<span id='header-left-anchor'></span>", unsafe_allow_html=True)
         role_name = st.session_state.current_preset.split(" ", 1)[1] if " " in st.session_state.current_preset else st.session_state.current_preset
         st.markdown(f"""
         <div class="gc-header-left">
@@ -566,6 +570,8 @@ with header_container:
         """, unsafe_allow_html=True)
 
     with col_right:
+        # Anchor inside the RIGHT header column so CSS can pin this whole block.
+        st.markdown("<span id='header-right-anchor'></span>", unsafe_allow_html=True)
         model_names = list(MODELS.keys())
         model_index = model_names.index(st.session_state.current_model) if st.session_state.current_model in model_names else 0
 
