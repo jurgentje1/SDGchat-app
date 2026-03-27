@@ -247,12 +247,15 @@ def get_theme_css():
     }}
 
     /* ── Sticky Header (always visible) ── */
-    div[data-testid="stHorizontalBlock"]:has(#header-left-anchor),
-    div[data-testid="stHorizontalBlock"]:has(#header-right-anchor) {{
+    div[data-testid="stVerticalBlockOuter"]:has(#header-anchor),
+    div[data-testid="stVerticalBlock"]:has(#header-anchor) {{
         position: sticky !important;
         top: 0px !important;
         z-index: 999 !important;
         background-color: {bg_main} !important;
+        padding-top: 15px !important;
+        padding-bottom: 5px !important;
+        margin-bottom: 25px !important;
         border-bottom: 1px solid rgba(255,107,53,.12) !important;
     }}
 
@@ -333,9 +336,9 @@ def get_theme_css():
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 72vh;
+        min-height: 50vh;
         text-align: center;
-        padding: 40px 20px 120px;
+        padding: 40px 20px;
         animation: fadeIn .55s ease-out;
     }}
     .gc-chat-icon {{
@@ -610,13 +613,12 @@ def settings_dialog():
 
 header_container = st.container()
 with header_container:
+    st.markdown("<span id='header-anchor'></span>", unsafe_allow_html=True)
     col_left, col_right = st.columns([3, 2])
 
     active_preset = PRESETS[st.session_state.current_preset]
 
     with col_left:
-        # Anchor inside the LEFT header column so CSS can pin this whole block.
-        st.markdown("<span id='header-left-anchor'></span>", unsafe_allow_html=True)
         role_name = st.session_state.current_preset.split(" ", 1)[1] if " " in st.session_state.current_preset else st.session_state.current_preset
         st.markdown(f"""
         <div class="gc-header-left">
@@ -629,8 +631,6 @@ with header_container:
         """, unsafe_allow_html=True)
 
     with col_right:
-        # Anchor inside the RIGHT header column so CSS can pin this whole block.
-        st.markdown("<span id='header-right-anchor'></span>", unsafe_allow_html=True)
         model_names = list(MODELS.keys())
         model_index = model_names.index(st.session_state.current_model) if st.session_state.current_model in model_names else 0
 
@@ -668,10 +668,11 @@ if not st.session_state.messages:
         <div class="gc-chat-icon">{active_preset['icon']}</div>
         <div class="gc-title">{active_preset['title']}</div>
         <div class="gc-subtitle">{active_preset['subtitle']} aan {st.session_state.current_model}</div>
+        <div style="color: #888; font-size: 14px; margin-top: 20px;">
+            Kies je model in de header en typ je vraag in de chatbox hieronder.
+        </div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.caption("Kies je model in de header en typ je vraag in de chatbox hieronder.")
 
 else:
     for message in st.session_state.messages:
