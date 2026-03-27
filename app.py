@@ -226,19 +226,12 @@ def get_theme_css():
         to   {{ opacity: 1; transform: translateY(0); }}
     }}
 
-    /* ── Fixed Header (always visible) ── */
-    div[data-testid="stVerticalBlockOuter"]:has(#header-anchor),
-    div[data-testid="stVerticalBlock"]:has(#header-anchor),
-    div:has(#header-anchor) {{
-        position: fixed !important;
+    /* ── Sticky Header (always visible) ── */
+    div[data-testid="stVerticalBlock"]:has(#header-anchor) {{
+        position: sticky !important;
         top: 0px !important;
-        left: 0px !important;
-        right: 0px !important;
         z-index: 999 !important;
         background-color: {bg_main} !important;
-        padding-top: 15px !important;
-        padding-bottom: 5px !important;
-        margin: 0 !important;
         border-bottom: 1px solid rgba(255,107,53,.12) !important;
     }}
 
@@ -596,9 +589,6 @@ with header_container:
         with hc3:
             if st.button("⚙️", key="settings_toggle", help="Instellingen"):
                 settings_dialog()   # opens the modal popup
-
-# Spacer to prevent fixed header overlap.
-st.markdown("<div style='height: 92px;'></div>", unsafe_allow_html=True)
 
 # ============================================================================
 # MAIN AREA
