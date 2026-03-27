@@ -1,3 +1,7 @@
+# visit the site
+
+https://sdgchat.streamlit.app/
+
 # SDGChat (Streamlit + Groq)
 
 A modern Streamlit chat app with multiple AI roles, model switching, and real-time streaming responses via the Groq API.
